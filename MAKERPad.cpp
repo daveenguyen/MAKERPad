@@ -76,23 +76,20 @@ int voltage_to_buttons[][4] = {
 };
 #endif
 
+#define TOTAL_BUTTON 20
 
-volatile charliePin leds[20] = {{ 4 , 0 },{ 3 , 0 },{ 2 , 0 },{ 1 , 0 },
+volatile charliePin leds[TOTAL_BUTTON] = {{ 4 , 0 },{ 3 , 0 },{ 2 , 0 },{ 1 , 0 },
 { 0 , 1 },{ 4 , 1 },{ 3 , 1 },{ 2 , 1 },
 { 1 , 2 },{ 0 , 2 },{ 4 , 2 },{ 3 , 2 },
 { 2 , 3 },{ 1 , 3 },{ 0 , 3 },{ 4 , 3 },
 { 2 , 4 },{ 1 , 4 },{ 0 , 4 },{ 3 , 4 }};
 
-
 // BUTTON EVENTS
-int oneshot[20];
-int posedge[20];
-int negedge[20];
+int oneshot[TOTAL_BUTTON];
+int posedge[TOTAL_BUTTON];
+int negedge[TOTAL_BUTTON];
 
-
-volatile boolean led_display[20];
-
-volatile boolean show = false;
+volatile boolean led_display[TOTAL_BUTTON];
 
 volatile int di = 0;
 
@@ -101,32 +98,29 @@ volatile byte pins[5] = {5,4,3,2,1};
 
 MAKERPad::MAKERPad(void) {
 
-  for(int i = 0; i < 5*4; i++) {
+  for(int i=0; i<TOTAL_BUTTON; i++) {
     led_display[i] = false;
   }
   di = 2;
 
-  pinMode( 13 , INPUT);
-  pinMode( 12 , INPUT);
-  pinMode( 11 , INPUT);
-  pinMode( 10 , INPUT);
-  pinMode( 9 , INPUT);
+
+  pinMode(13, INPUT);
+  pinMode(12, INPUT);
+  pinMode(11, INPUT);
+  pinMode(10, INPUT);
+  pinMode(9, INPUT);
 
 
   cli();          // disable global interrupts
+
   TIMSK1 = (1<<TOIE1);
   // set timer0 counter initial value to 0
   TCNT1=35624;
-
-
   // start timer0 with /1024 prescaler
   TCCR1B |= (1 << CS10);
+
   sei();          // enable global interrupts
-
-
-
-  sei();
-  interrupts();             // enable all interrupts
+  interrupts();   // enable all interrupts
 }
 
 void MAKERPad::Set(int num) {
@@ -138,7 +132,7 @@ void MAKERPad::Clear(int num) {
 }
 
 void MAKERPad::Clear() {
-  for(int i = 0; i < 5*4; i++) {
+  for(int i = 0; i < TOTAL_BUTTON; i++) {
     led_display[i] = false;
   }
 }
@@ -151,6 +145,7 @@ void MAKERPad::ClearRow(int num) {
   for(int i  = 0; i < 4; i++)
   led_display[num*4+i] = false;
 }
+
 boolean MAKERPad::CheckButtonPressed(int num){
   if(oneshot[num]) {
     oneshot[num] = false;
