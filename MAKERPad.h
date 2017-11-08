@@ -22,6 +22,8 @@ public:
   void UpdateButtons();
   boolean CheckButtonPressed(int num);
   boolean CheckButtonDown(int num);
+  boolean CheckButtonPosEdge(int num);
+  boolean CheckButtonNegEdge(int num);
 
 };
 

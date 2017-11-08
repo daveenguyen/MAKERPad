@@ -33,6 +33,10 @@
      └---- Button 3: pressed down
 */
 #define CLEAR B0000
+#define TOTAL_MAP_ENTRY 16
+#define BUTTON_DOWN 0
+#define ACTIVE_MIN  1
+#define ACTIVE_MAX  2
 
 #ifdef IAN
 int voltage_to_buttons[][4] = {
@@ -76,29 +80,36 @@ int voltage_to_buttons[][4] = {
 };
 #endif
 
-#define TOTAL_BUTTON 20
+#define TOTAL 20
+#define ROWS 5
+#define COLS 4
 
-volatile charliePin leds[TOTAL_BUTTON] = {{ 4 , 0 },{ 3 , 0 },{ 2 , 0 },{ 1 , 0 },
+volatile charliePin leds[TOTAL] = {{ 4 , 0 },{ 3 , 0 },{ 2 , 0 },{ 1 , 0 },
 { 0 , 1 },{ 4 , 1 },{ 3 , 1 },{ 2 , 1 },
 { 1 , 2 },{ 0 , 2 },{ 4 , 2 },{ 3 , 2 },
 { 2 , 3 },{ 1 , 3 },{ 0 , 3 },{ 4 , 3 },
 { 2 , 4 },{ 1 , 4 },{ 0 , 4 },{ 3 , 4 }};
 
 // BUTTON EVENTS
-int oneshot[TOTAL_BUTTON];
-int posedge[TOTAL_BUTTON];
-int negedge[TOTAL_BUTTON];
+int posedge[TOTAL];
+int negedge[TOTAL];
 
-volatile boolean led_display[TOTAL_BUTTON];
+volatile boolean led_display[TOTAL];
 
 volatile int di = 0;
 
-volatile byte pins[5] = {5,4,3,2,1};
+volatile byte pins[ROWS] = {5,4,3,2,1};
+
+// DEBOUNCE
+unsigned long debounce_delay = 50;    // the debounce time; increase if the output flickers
+unsigned long last_debounce[TOTAL];   // the last time the output pin was toggled
+int previous_state[TOTAL];
+int current_state[TOTAL];
 
 
 MAKERPad::MAKERPad(void) {
 
-  for(int i=0; i<TOTAL_BUTTON; i++) {
+  for(int i=0; i<TOTAL; i++) {
     led_display[i] = false;
   }
   di = 2;
@@ -132,7 +143,7 @@ void MAKERPad::Clear(int num) {
 }
 
 void MAKERPad::Clear() {
-  for(int i = 0; i < TOTAL_BUTTON; i++) {
+  for(int i=0; i<TOTAL; i++) {
     led_display[i] = false;
   }
 }
@@ -141,55 +152,100 @@ void MAKERPad::Toggle(int num) {
   led_display[num] = !led_display[num];
 }
 
-void MAKERPad::ClearRow(int num) {
-  for(int i  = 0; i < 4; i++)
-  led_display[num*4+i] = false;
+void MAKERPad::ClearRow(int row_num) {
+  for(int col=0; col<COLS; col++){
+    led_display[row_num*4+col] = false;
+  }
+}
+
+boolean MAKERPad::CheckButtonPosEdge(int num){
+  if(posedge[num]) {
+    posedge[num] = false;
+    return true;
+  } else {
+    return posedge[num];
+  }
+}
+boolean MAKERPad::CheckButtonNegEdge(int num){
+  if(negedge[num]) {
+    negedge[num] = false;
+    return true;
+  } else {
+    return posedge[num];
+  }
 }
 
 boolean MAKERPad::CheckButtonPressed(int num){
-  if(oneshot[num]) {
-    oneshot[num] = false;
+  if(posedge[num]) {
+    posedge[num] = false;
     return true;
-
   } else {
-    return oneshot[num];
+    return posedge[num];
   }
 }
 
 boolean MAKERPad::CheckButtonDown(int num){
+  return current_state[num];
+}
 
-  return oneshot[num];
+// Helper functions to update buttons state
+int get_active_mapping(int read_value) {
+  int min_value;
+  int max_value;
+
+  for (int i=0; i<TOTAL_MAP_ENTRY; i++) {
+    min_value = voltage_to_buttons[i][ACTIVE_MIN];
+    max_value = voltage_to_buttons[i][ACTIVE_MAX];
+
+    if (read_value >= min_value && read_value <= max_value) {
+      return i;
+    }
+  }
+
+  return 0; // default
+}
+
+boolean is_button_down(int read_value, int button_col) {
+  int active = get_active_mapping(read_value);
+
+  if (voltage_to_buttons[active][BUTTON_DOWN] & (B1 << button_col)) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 void MAKERPad::UpdateButtons() {
-  buttons[0] =  analogRead(0);
-  buttons[1] =  analogRead(1);
-  buttons[2] =  analogRead(2);
-  buttons[3] =  analogRead(3);
-  buttons[4] =  analogRead(4);
 
-  for(int j = 0; j < 5; j++) {
-    if(buttons[j] >= down[j][0] && buttons[j] <= down[j][1]) {
+  for(int row=0; row<ROWS; row++) {
+    unsigned long current_millis = millis();
+    int current_reading = analogRead(row);
 
-    } else {
-      down[j][0] = 0;
-      down[j][1] = 0;
-      for(int k = 0; k < 4;k++) oneshot[j*4+k] = false;
-      for(int i = 0; i <= 16; i++)
-      {
-        if(buttons[j] >= Button[i][1] && buttons[j] <= Button[i][2])
-        {
+    for(int col=0; col<COLS; col++) {
 
+      int current_index = row*4+col;
+      boolean current_button_reading = is_button_down(current_reading, col);
 
-          int label = Button[i][0];
+      // restart time if reading is unstable
+      if (current_button_reading != previous_state[current_index]) {
+        last_debounce[current_index] = current_millis;
+      }
 
-          down[j][0] = Button[i][1];
-          down[j][1] = Button[i][2];
-
-          oneshot[j*4+label] = true;
-
+      // if signal was stable for debounce delay
+      // and the signal value changed
+      // update button states
+      if ((current_millis - last_debounce[current_index]) > debounce_delay) {
+        if (current_button_reading != current_state[current_index]) {
+          current_state[current_index] = current_button_reading;
+          if (current_button_reading) {
+            posedge[current_index] = true;
+          } else {
+            negedge[current_index] = true;
+          }
         }
       }
+
+      previous_state[current_index] = current_button_reading;
     }
   }
 }
