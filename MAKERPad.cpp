@@ -1,49 +1,81 @@
 #include "MAKERPad.h"
 
+// Define which mapping to use
 #define FREDADAM
 
+
+// MAPPING BETWEEN ANALOG READING AND BUTTONS
+/*
+  A list of mapping between buttons and analog reading values.
+
+  If the analog reading is within the range of minimum and maximum values,
+  the item is active which maps to specific button currently pressed down.
+
+
+  Structure of each mapping item:
+    binary    buttons pressed down
+    int       minimum value
+    int       maximum value
+
+
+  Example:
+    Given:
+      item:    {B1101, 900, 906}
+      reading: 903
+
+    Since reading of 903 is within the range of 900-906, item is active.
+    The active item's binary number tell us button 0, 1, and 3 are pressed down.
+
+    B1101
+     |||└- Button 0: pressed down
+     ||└-- Button 1: not pressed down
+     |└--- Button 2: pressed down
+     └---- Button 3: pressed down
+*/
+#define CLEAR B0000
+
 #ifdef IAN
-int Button[][4] =  {{0, 835, 842}, // button 1
-{1, 730, 740}, // button 2
-{2, 600, 610}, // button 3
-{3, 310, 324}, // button 4
-{0, 892, 1000}, // button 1 + button 2
-{1, 892, 1000}, // button 1 + button 2
-{0, 872, 880}, // button 1 + button 3
-{2, 872, 880}, // button 1 + button 3
-{0, 848, 855}, // button 1 + button 4
-{3, 848, 855}, // button 1 + button 4
-{1, 813, 823}, // button 2 + button 3
-{2, 813, 823}, // button 2 + button 3
-{1, 765, 773}, // button 2 + button 4
-{3, 765, 773}, // button 2 + button 4
-{2, 667, 675}, // button 3 + button 4
-{3, 667, 675}}; // button 3 + button 4
+int voltage_to_buttons[][4] = {
+  {B0000, 000, 300},
+  {B0001, 835, 842},
+  {B0010, 730, 740},
+  {B0011, 892, 1000},
+  {B0100, 600, 610},
+  {B0101, 872, 880},
+  {B0110, 813, 823},
+  {B0111 & CLEAR, 831, 837},
+  {B1000, 310, 324},
+  {B1001, 848, 855},
+  {B1010, 765, 773},
+  {B1011 & CLEAR, 882, 891},
+  {B1100, 667, 675},
+  {B1101 & CLEAR, 900, 906},
+  {B1110 & CLEAR, 907, 918},
+  {B1111 & CLEAR, 919, 1001}
+};
 #endif
+
 #ifdef FREDADAM
-int Button[][4] =  {{3, 835, 842}, // button 1
-{2, 730, 740}, // button 2
-{1, 600, 617}, // button 3
-{0, 310, 324}, // button 4
-
-{2, 892, 1001}, // button 2 + button 4
-{3, 892, 1001}, // button 2 + button 4
-
-{1, 872, 881}, // button 3 + button 4
-{3, 872, 881}, // button 3 + button 4
-
-{0, 848, 855}, // button 1 + button 4
-{3, 848, 855}, // button 1 + button 4
-
-{1, 813, 823}, // button 2 + button 3
-{2, 813, 825}, // button 2 + button 3
-
-{0, 765, 773}, // button 1 + button 2
-{2, 765, 773}, // button 1 + button 2
-
-{0, 667, 679}, // button 1 + button 3
-{1, 667, 679}}; // button 1 + button 3
+int voltage_to_buttons[][4] = {
+  {B0000, 000, 300},
+  {B0001, 310, 324},
+  {B0010, 600, 617},
+  {B0011, 667, 679},
+  {B0100, 730, 740},
+  {B0101, 765, 773},
+  {B0110, 813, 830},
+  {B0111 & CLEAR, 831, 837}, // Unstable. B0111 values too similar to B1000.
+  {B1000, 838, 842},
+  {B1001, 848, 855},
+  {B1010, 872, 881},
+  {B1011, 882, 891},
+  {B1100, 892, 899},
+  {B1101, 900, 906},
+  {B1110, 907, 918},
+  {B1111, 919, 1001}
+};
 #endif
+
 
 volatile charliePin leds[20] = {{ 4 , 0 },{ 3 , 0 },{ 2 , 0 },{ 1 , 0 },
 { 0 , 1 },{ 4 , 1 },{ 3 , 1 },{ 2 , 1 },
