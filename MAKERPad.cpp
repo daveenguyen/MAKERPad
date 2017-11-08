@@ -83,10 +83,12 @@ volatile charliePin leds[20] = {{ 4 , 0 },{ 3 , 0 },{ 2 , 0 },{ 1 , 0 },
 { 2 , 3 },{ 1 , 3 },{ 0 , 3 },{ 4 , 3 },
 { 2 , 4 },{ 1 , 4 },{ 0 , 4 },{ 3 , 4 }};
 
-int buttons[5] = {0,0,0,0,0};
 
-int down[5][2] = {{0,0},{0,0},{0,0},{0,0},{0,0}};
+// BUTTON EVENTS
 int oneshot[20];
+int posedge[20];
+int negedge[20];
+
 
 volatile boolean display[20];
 
