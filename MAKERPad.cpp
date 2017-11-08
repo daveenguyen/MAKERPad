@@ -90,7 +90,7 @@ int posedge[20];
 int negedge[20];
 
 
-volatile boolean display[20];
+volatile boolean led_display[20];
 
 volatile boolean show = false;
 
@@ -102,7 +102,7 @@ volatile byte pins[5] = {5,4,3,2,1};
 MAKERPad::MAKERPad(void) {
 
   for(int i = 0; i < 5*4; i++) {
-    display[i] = false;
+    led_display[i] = false;
   }
   di = 2;
 
@@ -130,26 +130,26 @@ MAKERPad::MAKERPad(void) {
 }
 
 void MAKERPad::Set(int num) {
-  display[num] = true;
+  led_display[num] = true;
 }
 
 void MAKERPad::Clear(int num) {
-  display[num] = false;
+  led_display[num] = false;
 }
 
 void MAKERPad::Clear() {
   for(int i = 0; i < 5*4; i++) {
-    display[i] = false;
+    led_display[i] = false;
   }
 }
 
 void MAKERPad::Toggle(int num) {
-  display[num] = !display[num];
+  led_display[num] = !led_display[num];
 }
 
 void MAKERPad::ClearRow(int num) {
   for(int i  = 0; i < 4; i++)
-  display[num*4+i] = false;
+  led_display[num*4+i] = false;
 }
 boolean MAKERPad::CheckButtonPressed(int num){
   if(oneshot[num]) {
@@ -206,7 +206,7 @@ ISR(TIMER1_OVF_vect)
   DDRB = DDRB & ~B00111110;
   PORTB = PORTB & 0xFF80;
 
-  if(display[di]) {
+  if(led_display[di]) {
     DDRB = DDRB | (1 << pins[leds[di].vcc]) | (1 << pins[leds[di].gnd]);
     PORTB = PORTB | (1 << pins[leds[di].vcc]);
   }
